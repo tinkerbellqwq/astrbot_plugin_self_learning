@@ -138,6 +138,7 @@ class DatabaseEngine:
             connect_args={
                 'connect_timeout': 10,
                 'charset': 'utf8mb4',
+                'ssl': False,
             }
         )
 
