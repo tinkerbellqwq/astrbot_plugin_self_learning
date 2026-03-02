@@ -30,8 +30,7 @@ class BaseFacade:
 
         自动处理会话的创建、提交和回滚。
         使用 ``async with session`` 确保事务完整性，
-        不再在 finally 中重复调用 close 以避免
-        StaticPool 场景下的连接状态异常。
+        不再在 finally 中重复调用 close 以避免连接状态异常。
         """
         if self.engine is None or self.engine.engine is None:
             raise RuntimeError("数据库引擎未初始化或已关闭")
