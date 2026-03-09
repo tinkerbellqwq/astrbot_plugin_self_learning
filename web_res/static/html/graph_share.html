@@ -149,7 +149,7 @@
 
   <script>
     (function () {
-      var token = "{{ share_token }}";
+      var token = {{ share_token | tojson }};
       var chartDom = document.getElementById("chart");
       var chart = window.echarts ? window.echarts.init(chartDom) : null;
       var statsEl = document.getElementById("stats");

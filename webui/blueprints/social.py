@@ -137,14 +137,21 @@ async def create_group_social_graph_share(group_id: str):
     try:
         data = await request.get_json(silent=True) or {}
         expires_hours = data.get("expires_hours", 168)
+        min_hours = GraphShareService.MIN_EXPIRES_HOURS
+        max_hours = GraphShareService.MAX_EXPIRES_HOURS
 
         try:
             expires_hours = int(expires_hours)
         except (TypeError, ValueError):
             return jsonify({"success": False, "error": "expires_hours 必须是整数"}), 400
 
-        if expires_hours < 1 or expires_hours > 720:
-            return jsonify({"success": False, "error": "expires_hours 必须在 1~720 之间"}), 400
+        if expires_hours < min_hours or expires_hours > max_hours:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": f"expires_hours 必须在 {min_hours}~{max_hours} 之间",
+                }
+            ), 400
 
         container = get_container()
         share_service = GraphShareService(container)
@@ -169,26 +176,4 @@ async def create_group_social_graph_share(group_id: str):
 
     except Exception as e:
         logger.error(f"创建社交图谱分享链接失败: {e}", exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@social_bp.route("/social_relations/share/<token>", methods=["DELETE"])
-@require_auth
-async def revoke_social_graph_share(token: str):
-    """撤销社交图谱分享链接。"""
-    try:
-        container = get_container()
-        share_service = GraphShareService(container)
-        success, reason = share_service.revoke_share(token, reason="manual")
-
-        if success:
-            return jsonify({"success": True, "message": "分享链接已撤销"}), 200
-
-        if reason == "not_found":
-            return jsonify({"success": False, "error": "分享链接不存在"}), 404
-
-        return jsonify({"success": False, "error": "token 无效"}), 400
-
-    except Exception as e:
-        logger.error(f"撤销社交图谱分享链接失败: {e}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
