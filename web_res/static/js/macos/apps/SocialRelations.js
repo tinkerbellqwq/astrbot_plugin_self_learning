@@ -102,6 +102,10 @@ window.AppSocialRelations = {
               <i class="material-icons" style="font-size:14px;vertical-align:-2px;margin-right:3px;" v-if="!analyzing">analytics</i>
               分析关系
             </el-button>
+            <el-button type="success" size="small" :loading="sharing" @click="createShareLink">
+              <i class="material-icons" style="font-size:14px;vertical-align:-2px;margin-right:3px;" v-if="!sharing">share</i>
+              生成分享链接
+            </el-button>
             <el-button type="danger" size="small" @click="clearGroupRelations">
               <i class="material-icons" style="font-size:14px;vertical-align:-2px;margin-right:3px;">delete_sweep</i>
               清除数据
@@ -233,6 +237,7 @@ window.AppSocialRelations = {
       selectedUserId: "",
       memberSearch: "",
       analyzing: false,
+      sharing: false,
 
       // Chart
       chartInstance: null,
@@ -864,6 +869,104 @@ window.AppSocialRelations = {
         }
       } finally {
         this.analyzing = false;
+      }
+    },
+
+    /* ========== Share Link ========== */
+
+    async createShareLink() {
+      if (!this.currentGroupId) return;
+
+      var expiresHours = 168;
+      if (typeof ElementPlus !== "undefined" && ElementPlus.ElMessageBox) {
+        try {
+          var promptResult = await ElementPlus.ElMessageBox.prompt(
+            "请输入分享链接有效期（小时，1-720）",
+            "生成分享链接",
+            {
+              confirmButtonText: "生成",
+              cancelButtonText: "取消",
+              inputValue: "168",
+              inputPattern: /^\d+$/,
+              inputErrorMessage: "请输入正整数",
+            },
+          );
+          expiresHours = Number(promptResult.value || 168);
+          if (isNaN(expiresHours) || expiresHours < 1 || expiresHours > 720) {
+            ElementPlus.ElMessage.error("有效期必须在 1~720 小时之间");
+            return;
+          }
+        } catch (e) {
+          // User cancelled
+          return;
+        }
+      }
+
+      this.sharing = true;
+      try {
+        var resp = await fetch(
+          "/api/social_relations/" +
+            encodeURIComponent(this.currentGroupId) +
+            "/share",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ expires_hours: expiresHours }),
+          },
+        );
+
+        var result = await resp.json();
+        if (!resp.ok || !result.success) {
+          var errMsg =
+            (result && (result.error || result.message)) || "生成分享链接失败";
+          if (typeof ElementPlus !== "undefined") {
+            ElementPlus.ElMessage.error(errMsg);
+          }
+          return;
+        }
+
+        var shareUrl =
+          (result.data && result.data.share_url) || result.share_url || "";
+        if (!shareUrl) {
+          if (typeof ElementPlus !== "undefined") {
+            ElementPlus.ElMessage.error("分享链接为空，请重试");
+          }
+          return;
+        }
+
+        var copied = false;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(shareUrl);
+            copied = true;
+          } catch (_) {
+            copied = false;
+          }
+        }
+
+        if (typeof ElementPlus !== "undefined" && ElementPlus.ElMessageBox) {
+          await ElementPlus.ElMessageBox.alert(
+            shareUrl,
+            copied ? "分享链接（已复制）" : "分享链接",
+            {
+              confirmButtonText: "确定",
+            },
+          );
+          ElementPlus.ElMessage.success(
+            copied ? "分享链接已生成并复制" : "分享链接已生成",
+          );
+        } else {
+          window.prompt("复制分享链接", shareUrl);
+        }
+      } catch (e) {
+        console.error("[SocialRelations] createShareLink error:", e);
+        if (typeof ElementPlus !== "undefined") {
+          ElementPlus.ElMessage.error(
+            "生成分享链接失败: " + (e.message || "网络错误"),
+          );
+        }
+      } finally {
+        this.sharing = false;
       }
     },
 
