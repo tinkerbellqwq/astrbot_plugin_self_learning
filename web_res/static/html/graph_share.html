@@ -161,6 +161,34 @@
       var rawMembers = [];
       var rawRelations = [];
       var graphLayout = "force";
+      var typeColors = {
+        // 正常社交关系
+        frequent_interaction: "#1976d2",
+        mention: "#ff9800",
+        reply: "#4caf50",
+        topic_discussion: "#00bcd4",
+        question_answer: "#8bc34a",
+        agreement: "#03a9f4",
+        debate: "#ff5722",
+        best_friend: "#e91e63",
+        colleague: "#607d8b",
+        classmate: "#795548",
+        teacher_student: "#9c27b0",
+        // 亲属关系
+        parent_child: "#ff4081",
+        siblings: "#f06292",
+        relatives: "#ce93d8",
+        // 亲密关系
+        couple: "#e91e63",
+        spouse: "#d81b60",
+        ambiguous: "#ab47bc",
+        affair: "#880e4f",
+        // 其他特殊关系
+        enemy: "#f44336",
+        rival: "#ef5350",
+        admiration: "#7c4dff",
+        idol_fan: "#651fff",
+      };
 
       function showError(message) {
         errorEl.style.display = "block";
@@ -248,6 +276,7 @@
 
         var links = relations.map(function (r) {
           var strength = Number(r.strength || 0);
+          var relType = r.type || "interaction";
           return {
             source: String(r.source || ""),
             target: String(r.target || ""),
@@ -257,6 +286,7 @@
             lineStyle: {
               width: Math.max(1, Math.min(8, strength * 4)),
               opacity: 0.75,
+              color: typeColors[relType] || "#607d8b",
             },
           };
         });
@@ -306,7 +336,6 @@
             color: "#374151",
           },
           lineStyle: {
-            color: "source",
             curveness: 0.22,
           },
           emphasis: {
